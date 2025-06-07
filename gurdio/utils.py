@@ -4,12 +4,21 @@ import hmac
 import hashlib
 import base64
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 from gurdio.models import Config, Rule, parse_proto_pokemon
 
 logger = logging.getLogger(__name__)
 
 def load_config() -> Config:
+    """
+    Load configuration from the file specified in POKEPROXY_CONFIG environment variable.
+    
+    Returns:
+        Config: The loaded configuration
+        
+    Raises:
+        ValueError: If POKEPROXY_CONFIG is not set or config file cannot be loaded
+    """
     config_path = os.getenv('POKEPROXY_CONFIG')
     if not config_path:
         logger.exception("Can't find POKEPROXY_CONFIG environment variable. " \
@@ -53,7 +62,16 @@ def ensure_data_integrity(data: bytes, signature: str, secret: str) -> bool:
         return False
 
 def evaluate_rule(pokemon: Dict[str, Any], rule: Rule) -> bool:
-    """Evaluate if a Pokemon matches a rule's conditions."""
+    """
+    Evaluate if a Pokemon matches a rule's conditions.
+    
+    Args:
+        pokemon (Dict[str, Any]): The Pokemon data to evaluate
+        rule (Rule): The rule containing conditions to check
+        
+    Returns:
+        bool: True if all conditions match, False otherwise
+    """
     # Validate inputs
     if not isinstance(pokemon, dict):
         logger.error("Invalid pokemon: must be a dictionary")
@@ -120,9 +138,18 @@ def evaluate_rule(pokemon: Dict[str, Any], rule: Rule) -> bool:
             return False
     return True
 
-def parse_pokemon(data: bytes) -> dict:
+def parse_pokemon(data: bytes) -> Dict[str, Any]:
     """
     Parse Pokemon data from protobuf bytes to dict.
     Uses Protocol Buffers for efficient serialization/deserialization.
+    
+    Args:
+        data (bytes): The protobuf serialized data
+        
+    Returns:
+        Dict[str, Any]: Dictionary representation of the Pokemon data
+        
+    Raises:
+        Exception: If the protobuf data is invalid or cannot be parsed
     """
     return parse_proto_pokemon(data) 

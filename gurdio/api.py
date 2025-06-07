@@ -1,11 +1,13 @@
 import os
 import time
 import logging
+from typing import Dict, Any, Optional
 from fastapi import FastAPI, Request, HTTPException, Header
 from fastapi.responses import JSONResponse
 import httpx
 
 from utils import ensure_data_integrity, evaluate_rule, load_config, parse_pokemon
+from models import Rule
 from stats import stats
 
 logging.basicConfig(
@@ -20,9 +22,21 @@ config = load_config()
 @app.post("/stream")
 async def stream_endpoint(
     request: Request,
-    x_grd_signature: str = Header(None)
-):
-    """Handle incoming Pokemon stream requests."""
+    x_grd_signature: Optional[str] = Header(None)
+) -> JSONResponse:
+    """
+    Handle incoming Pokemon stream requests.
+    
+    Args:
+        request (Request): The incoming request
+        x_grd_signature (Optional[str]): HMAC-SHA256 signature of the request body
+        
+    Returns:
+        JSONResponse: The response from the matched service
+        
+    Raises:
+        HTTPException: If signature is missing, invalid, or no matching rule is found
+    """
     if not x_grd_signature:
         raise HTTPException(status_code=401, detail="Missing signature header")
 
@@ -92,8 +106,13 @@ async def stream_endpoint(
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/stats")
-async def stats_endpoint():
-    """Return statistics for the proxy service."""
+async def stats_endpoint() -> Dict[str, Dict[str, Any]]:
+    """
+    Return statistics for the proxy service.
+    
+    Returns:
+        Dict[str, Dict[str, Any]]: Statistics for each endpoint
+    """
     return {
         endpoint: {
             "request_count": stat.request_count,
