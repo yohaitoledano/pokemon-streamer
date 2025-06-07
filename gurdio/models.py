@@ -1,5 +1,7 @@
 from typing import List, Optional
 from pydantic import BaseModel
+from google.protobuf.json_format import Parse, MessageToDict
+from .pokemon_pb2 import Pokemon as ProtoPokemon
 
 class Rule(BaseModel):
     url: str
@@ -9,17 +11,8 @@ class Rule(BaseModel):
 class Config(BaseModel):
     rules: List[Rule]
 
-class Pokemon(BaseModel):
-    number: int
-    name: str
-    type_one: str
-    type_two: Optional[str] = None
-    total: int
-    hit_points: int
-    attack: int
-    defense: int
-    special_attack: int
-    special_defense: int
-    speed: int
-    generation: int
-    legendary: bool 
+def parse_proto_pokemon(data: bytes) -> dict:
+    """Parse Pokemon data from protobuf bytes to dict."""
+    pokemon = ProtoPokemon()
+    pokemon.ParseFromString(data)
+    return MessageToDict(pokemon, preserving_proto_field_name=True) 

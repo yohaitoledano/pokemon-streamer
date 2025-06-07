@@ -4,7 +4,9 @@ import hmac
 import hashlib
 import json
 from ..utils import ensure_data_integrity, evaluate_rule, parse_pokemon
-from ..models import Rule, Pokemon
+from ..models import Rule
+from ..pokemon_pb2 import Pokemon as ProtoPokemon
+from google.protobuf.json_format import MessageToDict
 
 def test_ensure_data_integrity():
     # Test data
@@ -88,13 +90,31 @@ def test_parse_pokemon():
         "legendary": False
     }
     
+    # Create protobuf message
+    proto_pokemon = ProtoPokemon()
+    proto_pokemon.number = pokemon_data["number"]
+    proto_pokemon.name = pokemon_data["name"]
+    proto_pokemon.type_one = pokemon_data["type_one"]
+    proto_pokemon.type_two = pokemon_data["type_two"]
+    proto_pokemon.total = pokemon_data["total"]
+    proto_pokemon.hit_points = pokemon_data["hit_points"]
+    proto_pokemon.attack = pokemon_data["attack"]
+    proto_pokemon.defense = pokemon_data["defense"]
+    proto_pokemon.special_attack = pokemon_data["special_attack"]
+    proto_pokemon.special_defense = pokemon_data["special_defense"]
+    proto_pokemon.speed = pokemon_data["speed"]
+    proto_pokemon.generation = pokemon_data["generation"]
+    proto_pokemon.legendary = pokemon_data["legendary"]
+    
     # Convert to bytes
-    data_bytes = json.dumps(pokemon_data).encode('utf-8')
+    data_bytes = proto_pokemon.SerializeToString()
     
     # Parse and verify
     result = parse_pokemon(data_bytes)
-    assert result == pokemon_data
+    proto_dict = MessageToDict(proto_pokemon, preserving_proto_field_name=True)
+    
+    assert result == proto_dict
     
     # Test with invalid data
     with pytest.raises(Exception):
-        parse_pokemon(b"invalid json") 
+        parse_pokemon(b"invalid protobuf data") 

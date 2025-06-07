@@ -5,7 +5,7 @@ import hashlib
 import base64
 import logging
 from typing import Dict, Any
-from gurdio.models import Config, Rule, Pokemon
+from gurdio.models import Config, Rule, parse_proto_pokemon
 
 logger = logging.getLogger(__name__)
 
@@ -118,10 +118,4 @@ def evaluate_rule(pokemon: Dict[str, Any], rule: Rule) -> bool:
         except Exception as e:
             logger.error(f"Error evaluating rule condition {condition}: {str(e)}")
             return False
-    return True
-
-def parse_pokemon(data: bytes) -> dict:
-    # Convert bytes to string and parse as JSON
-    pokemon_data = json.loads(data.decode('utf-8'))
-    pokemon = Pokemon(**pokemon_data)
-    return pokemon.model_dump() 
+    return True 

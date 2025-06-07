@@ -5,7 +5,8 @@ from fastapi import FastAPI, Request, HTTPException, Header
 from fastapi.responses import JSONResponse
 import httpx
 
-from utils import ensure_data_integrity, evaluate_rule, load_config, parse_pokemon
+from utils import ensure_data_integrity, evaluate_rule, load_config
+from models import parse_proto_pokemon
 from stats import stats
 
 logging.basicConfig(
@@ -42,7 +43,7 @@ async def stream_endpoint(
         if not ensure_data_integrity(body, x_grd_signature, hmac_secret):
             raise HTTPException(status_code=401, detail="Invalid signature")
 
-        pokemon = parse_pokemon(body)
+        pokemon = parse_proto_pokemon(body)
         
         # Find matching rule
         matched_rule = None
