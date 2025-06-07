@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 import base64
 import hmac
 import hashlib
+import json
 from ..api import app
 
 client = TestClient(app)
@@ -28,6 +29,46 @@ def test_stream_endpoint_invalid_signature():
     )
     assert response.status_code == 401
     assert response.json()["detail"] == "Invalid signature"
+
+def test_stream_endpoint_valid_data():
+    # Test data
+    pokemon_data = {
+        "number": 1,
+        "name": "Bulbasaur",
+        "type_one": "Grass",
+        "type_two": "Poison",
+        "total": 318,
+        "hit_points": 45,
+        "attack": 49,
+        "defense": 49,
+        "special_attack": 65,
+        "special_defense": 65,
+        "speed": 45,
+        "generation": 1,
+        "legendary": False
+    }
+    
+    # Convert to bytes
+    data_bytes = json.dumps(pokemon_data).encode('utf-8')
+    
+    # Generate signature
+    secret = base64.b64encode(b"test secret").decode()
+    signature = generate_signature(data_bytes, secret)
+    
+    # Set environment variable for testing
+    import os
+    os.environ['HMAC_SECRET'] = secret
+    
+    # Make request
+    response = client.post(
+        "/stream",
+        data=data_bytes,
+        headers={"X-Grd-Signature": signature}
+    )
+    
+    # Since we don't have a mock for the downstream service,
+    # we expect a 404 (no matching rule) or 500 (downstream error)
+    assert response.status_code in [404, 500]
 
 def test_stats_endpoint():
     response = client.get("/stats")

@@ -5,7 +5,7 @@ import hashlib
 import base64
 import logging
 from typing import Dict, Any
-from .models import Config, Rule
+from models import Config, Rule, Pokemon
 
 logger = logging.getLogger(__name__)
 
@@ -77,4 +77,10 @@ def evaluate_rule(pokemon: Dict[str, Any], rule: Rule) -> bool:
         except Exception as e:
             logger.error(f"Error evaluating rule condition {condition}: {str(e)}")
             return False
-    return True 
+    return True
+
+def parse_pokemon(data: bytes) -> dict:
+    # Convert bytes to string and parse as JSON
+    pokemon_data = json.loads(data.decode('utf-8'))
+    pokemon = Pokemon(**pokemon_data)
+    return pokemon.dict() 

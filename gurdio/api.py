@@ -4,10 +4,9 @@ import logging
 from fastapi import FastAPI, Request, HTTPException, Header
 from fastapi.responses import JSONResponse
 import httpx
-import protobuf
 
-from .utils import ensure_data_integrity, evaluate_rule, load_config
-from .stats import stats
+from utils import ensure_data_integrity, evaluate_rule, load_config, parse_pokemon
+from stats import stats
 
 # Configure logging
 logging.basicConfig(
@@ -44,7 +43,7 @@ async def stream_endpoint(
             raise HTTPException(status_code=401, detail="Invalid signature")
 
         # Parse protobuf message
-        pokemon = protobuf.parse_pokemon(body)
+        pokemon = parse_pokemon(body)
         
         # Find matching rule
         matched_rule = None

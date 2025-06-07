@@ -2,8 +2,9 @@ import pytest
 import base64
 import hmac
 import hashlib
-from ..utils import ensure_data_integrity, evaluate_rule
-from ..models import Rule
+import json
+from ..utils import ensure_data_integrity, evaluate_rule, parse_pokemon
+from ..models import Rule, Pokemon
 
 def test_ensure_data_integrity():
     # Test data
@@ -67,4 +68,33 @@ def test_evaluate_rule():
         reason="test rule",
         match=["invalid_field==20"]
     )
-    assert evaluate_rule(pokemon, invalid_field_rule) is False 
+    assert evaluate_rule(pokemon, invalid_field_rule) is False
+
+def test_parse_pokemon():
+    # Test data
+    pokemon_data = {
+        "number": 1,
+        "name": "Bulbasaur",
+        "type_one": "Grass",
+        "type_two": "Poison",
+        "total": 318,
+        "hit_points": 45,
+        "attack": 49,
+        "defense": 49,
+        "special_attack": 65,
+        "special_defense": 65,
+        "speed": 45,
+        "generation": 1,
+        "legendary": False
+    }
+    
+    # Convert to bytes
+    data_bytes = json.dumps(pokemon_data).encode('utf-8')
+    
+    # Parse and verify
+    result = parse_pokemon(data_bytes)
+    assert result == pokemon_data
+    
+    # Test with invalid data
+    with pytest.raises(Exception):
+        parse_pokemon(b"invalid json") 
