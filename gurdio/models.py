@@ -2,6 +2,7 @@ from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 from google.protobuf.json_format import Parse, MessageToDict
 from .pokemon_pb2 import Pokemon as ProtoPokemon
+from functools import lru_cache
 
 class Rule(BaseModel):
     url: str
@@ -10,6 +11,22 @@ class Rule(BaseModel):
 
 class Config(BaseModel):
     rules: List[Rule]
+
+@lru_cache(maxsize=1)
+def get_cached_pokemon_message() -> ProtoPokemon:
+    """
+    Get a cached instance of the Pokemon protobuf message type.
+    
+    This function uses LRU cache with maxsize=1 because:
+    1. We only need one instance of the message type
+    2. The message type is immutable and acts as a template
+    3. We reuse this instance for all parsing operations
+    4. The instance is cleared before each use to prevent data leakage
+    
+    Returns:
+        ProtoPokemon: A cached instance of the Pokemon protobuf message
+    """
+    return ProtoPokemon()
 
 def parse_proto_pokemon(data: bytes) -> Dict[str, Any]:
     """
@@ -24,6 +41,7 @@ def parse_proto_pokemon(data: bytes) -> Dict[str, Any]:
     Raises:
         Exception: If the protobuf data is invalid or cannot be parsed
     """
-    pokemon = ProtoPokemon()
+    pokemon = get_cached_pokemon_message()
+    pokemon.Clear()  # Clear any previous data
     pokemon.ParseFromString(data)
     return MessageToDict(pokemon, preserving_proto_field_name=True) 
