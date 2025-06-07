@@ -1,0 +1,16 @@
+setup.py
+gurdio/__init__.py
+gurdio/api.py
+gurdio/main.py
+gurdio/models.py
+gurdio/stats.py
+gurdio/utils.py
+gurdio.egg-info/PKG-INFO
+gurdio.egg-info/SOURCES.txt
+gurdio.egg-info/dependency_links.txt
+gurdio.egg-info/requires.txt
+gurdio.egg-info/top_level.txt
+gurdio/tests/__init__.py
+gurdio/tests/test_api.py
+gurdio/tests/test_stats.py
+gurdio/tests/test_utils.py

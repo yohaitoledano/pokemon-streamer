@@ -1,0 +1,43 @@
+import pytest
+from fastapi.testclient import TestClient
+import base64
+import hmac
+import hashlib
+from ..api import app
+
+client = TestClient(app)
+
+def generate_signature(data: bytes, secret: str) -> str:
+    secret_bytes = base64.b64decode(secret)
+    return hmac.new(
+        secret_bytes,
+        data,
+        hashlib.sha256
+    ).hexdigest()
+
+def test_stream_endpoint_missing_signature():
+    response = client.post("/stream", data=b"test data")
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Missing signature header"
+
+def test_stream_endpoint_invalid_signature():
+    response = client.post(
+        "/stream",
+        data=b"test data",
+        headers={"X-Grd-Signature": "invalid"}
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid signature"
+
+def test_stats_endpoint():
+    response = client.get("/stats")
+    assert response.status_code == 200
+    data = response.json()
+    assert "stream" in data
+    stats = data["stream"]
+    assert "request_count" in stats
+    assert "error_rate" in stats
+    assert "incoming_bytes" in stats
+    assert "outgoing_bytes" in stats
+    assert "average_response_time" in stats
+    assert "uptime_seconds" in stats 
