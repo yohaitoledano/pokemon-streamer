@@ -118,4 +118,11 @@ def evaluate_rule(pokemon: Dict[str, Any], rule: Rule) -> bool:
         except Exception as e:
             logger.error(f"Error evaluating rule condition {condition}: {str(e)}")
             return False
-    return True 
+    return True
+
+def parse_pokemon(data: bytes) -> dict:
+    """
+    Parse Pokemon data from protobuf bytes to dict.
+    Uses Protocol Buffers for efficient serialization/deserialization.
+    """
+    return parse_proto_pokemon(data) 
