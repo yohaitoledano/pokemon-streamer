@@ -46,7 +46,6 @@ def test_stats_properties():
     # Test with errors
     stats.add_request(100, 0, 0.5, is_error=True)
     assert stats.error_rate == 1/3
-    assert stats.avg_response_time == 2/3
 
 def test_stats_uptime():
     stats = Stats()

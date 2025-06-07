@@ -22,6 +22,11 @@ def test_stream_endpoint_missing_signature():
     assert response.json()["detail"] == "Missing signature header"
 
 def test_stream_endpoint_invalid_signature():
+    # Set environment variable for testing
+    secret = base64.b64encode(b"test secret").decode()
+    import os
+    os.environ['HMAC_SECRET'] = secret
+    
     response = client.post(
         "/stream",
         data=b"test data",

@@ -10,7 +10,10 @@ class Stats:
         self.total_response_time = 0
         self.start_time = time.time()
 
-    def add_request(self, incoming_bytes: int, outgoing_bytes: int, response_time: float, is_error: bool = False):
+    def add_request(self, incoming_bytes: int, 
+                    outgoing_bytes: int, 
+                    response_time: float, 
+                    is_error: bool = False):
         self.request_count += 1
         self.incoming_bytes += incoming_bytes
         self.outgoing_bytes += outgoing_bytes
@@ -30,5 +33,5 @@ class Stats:
     def uptime(self) -> float:
         return time.time() - self.start_time
 
-# Global stats dictionary
+# Global stats dictionary - TODO use a persistent DB
 stats = defaultdict(Stats) 

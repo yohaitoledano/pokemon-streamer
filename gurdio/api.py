@@ -8,17 +8,13 @@ import httpx
 from utils import ensure_data_integrity, evaluate_rule, load_config, parse_pokemon
 from stats import stats
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
-# Initialize FastAPI app
 app = FastAPI(title="Pokemon Stream Proxy")
-
-# Load configuration
 config = load_config()
 
 @app.post("/stream")
@@ -30,19 +26,22 @@ async def stream_endpoint(
     if not x_grd_signature:
         raise HTTPException(status_code=401, detail="Missing signature header")
 
-    # Read request body
     body = await request.body()
     start_time = time.time()
     
-    # Update incoming bytes stats
     stats['stream'].incoming_bytes += len(body)
 
     try:
+        # Check if HMAC_SECRET is set
+        hmac_secret = os.getenv('HMAC_SECRET')
+        if not hmac_secret:
+            logger.error("HMAC_SECRET environment variable not set")
+            raise HTTPException(status_code=500, detail="HMAC_SECRET environment variable not set")
+
         # Validate signature
-        if not ensure_data_integrity(body, x_grd_signature, os.getenv('HMAC_SECRET', '')):
+        if not ensure_data_integrity(body, x_grd_signature, hmac_secret):
             raise HTTPException(status_code=401, detail="Invalid signature")
 
-        # Parse protobuf message
         pokemon = parse_pokemon(body)
         
         # Find matching rule
@@ -70,10 +69,10 @@ async def stream_endpoint(
             # Update stats
             response_time = time.time() - start_time
             stats['stream'].add_request(
-                len(body),
-                len(response.content),
-                response_time,
-                response.status_code >= 400
+                incoming_bytes=len(body),
+                outgoing_bytes=len(response.content),
+                response_time=response_time,
+                is_error=response.status_code >= 400
             )
 
             return JSONResponse(
@@ -82,9 +81,14 @@ async def stream_endpoint(
                 headers=dict(response.headers)
             )
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error processing request: {str(e)}")
-        stats['stream'].add_request(len(body), 0, time.time() - start_time, True)
+        stats['stream'].add_request(incoming_bytes=len(body), 
+                                    outgoing_bytes=0, 
+                                    response_time=time.time() - start_time, 
+                                    is_error=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/stats")

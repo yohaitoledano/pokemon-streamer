@@ -9,7 +9,7 @@ from ..models import Rule, Pokemon
 def test_ensure_data_integrity():
     # Test data
     data = b"test data"
-    secret = base64.b64encode(b"test secret").decode()
+    secret = base64.b64encode(data).decode()
     
     # Generate valid signature
     secret_bytes = base64.b64decode(secret)
@@ -47,7 +47,7 @@ def test_evaluate_rule():
             "type_two!=water",
             "special_defense > 10",
             "generation < 20",
-            "legendary==true"
+            "legendary==True"
         ]
     )
     
