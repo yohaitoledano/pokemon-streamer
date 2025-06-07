@@ -7,7 +7,7 @@ A FastAPI-based proxy service for handling Pokemon stream data with rule-based r
 - HMAC-SHA256 signature validation
 - Rule-based request routing
 - Real-time statistics tracking
-- Protobuf message handling
+- Protocol Buffers for efficient serialization
 - Configurable routing rules
 
 ## Installation
@@ -15,12 +15,12 @@ A FastAPI-based proxy service for handling Pokemon stream data with rule-based r
 1. Clone the repository
 2. Install dependencies:
 ```bash
-pip install -r requirements.txt
+pip install -e .
 ```
 
 ## Configuration
 
-Create a configuration file (e.g., `config.json`):
+Create a configuration file (e.g., `POKEPROXY_CONFIG.json`):
 ```json
 {
     "rules": [
@@ -46,7 +46,7 @@ Create a configuration file (e.g., `config.json`):
 ## Running the Service
 
 ```bash
-python -m demo_app.gurdio.main
+python -m gurdio.main
 ```
 
 The service will start on `http://localhost:8000`
@@ -58,6 +58,9 @@ Handles incoming Pokemon stream requests.
 
 Headers:
 - `X-Grd-Signature`: HMAC-SHA256 signature of the request body
+
+Request Body:
+- Protocol Buffer serialized Pokemon data
 
 ### GET /stats
 Returns statistics for the proxy service.
@@ -79,16 +82,18 @@ Response:
 ## Running Tests
 
 ```bash
-pytest demo_app/gurdio/tests/
+pytest gurdio/tests/
 ```
 
 ## Project Structure
 
 ```
-demo_app/gurdio/
+gurdio/
 ├── __init__.py
 ├── api.py           # FastAPI endpoints
-├── models.py        # Data models
+├── models.py        # Data models and protobuf handling
+├── pokemon.proto    # Protocol Buffer definition
+├── pokemon_pb2.py   # Generated protobuf code
 ├── stats.py         # Statistics tracking
 ├── utils.py         # Helper functions
 ├── main.py          # Application entry point
@@ -101,9 +106,11 @@ demo_app/gurdio/
 
 ## Dependencies
 
-- FastAPI
-- uvicorn
-- httpx
-- protobuf
-- pydantic
-- pytest (for testing) 
+- FastAPI==0.104.1
+- uvicorn==0.24.0
+- httpx==0.25.1
+- protobuf>=4.25.1,<7.0.0
+- pydantic==2.4.2
+- pytest==7.4.3 (for testing)
+- pytest-asyncio==0.21.1 (for testing)
+- grpcio-tools>=1.72.1 (for protobuf generation) 
