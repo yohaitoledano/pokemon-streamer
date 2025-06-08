@@ -6,9 +6,9 @@ from fastapi import FastAPI, Request, HTTPException, Header
 from fastapi.responses import JSONResponse
 import httpx
 
-from utils import ensure_data_integrity, evaluate_rule, load_config, parse_pokemon
-from models import Rule
-from stats import stats
+from gurdio.utils import ensure_data_integrity, evaluate_rule, load_config, parse_pokemon
+from gurdio.models import Rule
+from gurdio.stats import stats
 
 logging.basicConfig(
     level=logging.INFO,

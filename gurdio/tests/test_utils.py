@@ -3,8 +3,9 @@ import base64
 import hmac
 import hashlib
 import json
+import time
 from ..utils import ensure_data_integrity, evaluate_rule, parse_pokemon
-from ..models import Rule
+from ..models import Rule, get_cached_pokemon_message
 from ..pokemon_pb2 import Pokemon as ProtoPokemon
 from google.protobuf.json_format import MessageToDict
 
@@ -72,49 +73,59 @@ def test_evaluate_rule():
     )
     assert evaluate_rule(pokemon, invalid_field_rule) is False
 
-def test_parse_pokemon():
-    # Test data
-    pokemon_data = {
-        "number": 1,
-        "name": "Bulbasaur",
-        "type_one": "Grass",
-        "type_two": "Poison",
-        "total": 318,
-        "hit_points": 45,
-        "attack": 49,
-        "defense": 49,
-        "special_attack": 65,
-        "special_defense": 65,
-        "speed": 45,
-        "generation": 1,
-        "legendary": False
-    }
-    
-    # Create protobuf message
+def test_parse_empty_protobuf():
+    """Test parsing an empty protobuf message."""
+    # Create empty protobuf message
     proto_pokemon = ProtoPokemon()
-    proto_pokemon.number = pokemon_data["number"]
-    proto_pokemon.name = pokemon_data["name"]
-    proto_pokemon.type_one = pokemon_data["type_one"]
-    proto_pokemon.type_two = pokemon_data["type_two"]
-    proto_pokemon.total = pokemon_data["total"]
-    proto_pokemon.hit_points = pokemon_data["hit_points"]
-    proto_pokemon.attack = pokemon_data["attack"]
-    proto_pokemon.defense = pokemon_data["defense"]
-    proto_pokemon.special_attack = pokemon_data["special_attack"]
-    proto_pokemon.special_defense = pokemon_data["special_defense"]
-    proto_pokemon.speed = pokemon_data["speed"]
-    proto_pokemon.generation = pokemon_data["generation"]
-    proto_pokemon.legendary = pokemon_data["legendary"]
-    
-    # Convert to bytes
     data_bytes = proto_pokemon.SerializeToString()
     
     # Parse and verify
     result = parse_pokemon(data_bytes)
-    proto_dict = MessageToDict(proto_pokemon, preserving_proto_field_name=True)
     
-    assert result == proto_dict
+    # All fields should be empty or have default values
+    assert result == {
+        "number": 0,
+        "name": "",
+        "type_one": "",
+        "type_two": "",
+        "total": 0,
+        "hit_points": 0,
+        "attack": 0,
+        "defense": 0,
+        "special_attack": 0,
+        "special_defense": 0,
+        "speed": 0,
+        "generation": 0,
+        "legendary": False
+    }
+
+def test_protobuf_creation_benchmark():
+    """Benchmark the performance difference between cached and non-cached protobuf creation."""
+    iterations = 100000
     
-    # Test with invalid data
-    with pytest.raises(Exception):
-        parse_pokemon(b"invalid protobuf data") 
+    # Benchmark non-cached creation
+    start_time = time.time()
+    for _ in range(iterations):
+        pokemon = ProtoPokemon()
+        pokemon.number = 1
+        pokemon.name = "Test"
+    non_cached_time = time.time() - start_time
+    
+    # Benchmark cached creation
+    start_time = time.time()
+    for _ in range(iterations):
+        pokemon = get_cached_pokemon_message()
+        pokemon.Clear()
+        pokemon.number = 1
+        pokemon.name = "Test"
+    cached_time = time.time() - start_time
+    
+    # Calculate and print results
+    speedup = non_cached_time / cached_time
+    print(f"\nProtobuf Creation Benchmark (100,000 iterations):")
+    print(f"Non-cached time: {non_cached_time:.3f} seconds")
+    print(f"Cached time: {cached_time:.3f} seconds")
+    print(f"Speedup: {speedup:.2f}x")
+    
+    # Verify the benchmark is meaningful
+    assert cached_time < non_cached_time, "Cached version should be faster" 

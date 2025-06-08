@@ -1,7 +1,7 @@
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 from google.protobuf.json_format import Parse, MessageToDict
-from .pokemon_pb2 import Pokemon as ProtoPokemon
+from gurdio.pokemon_pb2 import Pokemon as ProtoPokemon
 from functools import lru_cache
 
 class Rule(BaseModel):
@@ -44,4 +44,16 @@ def parse_proto_pokemon(data: bytes) -> Dict[str, Any]:
     pokemon = get_cached_pokemon_message()
     pokemon.Clear()  # Clear any previous data
     pokemon.ParseFromString(data)
-    return MessageToDict(pokemon, preserving_proto_field_name=True) 
+    
+    # Convert to dict with proper types
+    result = {}
+    for field in pokemon.DESCRIPTOR.fields:
+        value = getattr(pokemon, field.name)
+        if field.type == field.TYPE_UINT64:
+            result[field.name] = int(value)
+        elif field.type == field.TYPE_BOOL:
+            result[field.name] = bool(value)
+        else:
+            result[field.name] = str(value)
+            
+    return result 
