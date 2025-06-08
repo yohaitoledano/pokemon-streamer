@@ -2,10 +2,11 @@ import os
 import time
 import logging
 from typing import Dict, Any, Optional
-from fastapi import FastAPI, Request, HTTPException, Header
+from fastapi import FastAPI, Request, HTTPException, Header, Body
 from fastapi.responses import JSONResponse
 import httpx
 import ssl
+from pydantic import BaseModel
 
 from gurdio.utils import ensure_data_integrity, evaluate_rule, load_config, parse_pokemon
 from gurdio.models import Rule
@@ -17,20 +18,101 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Pokemon Stream Proxy")
+app = FastAPI(
+    title="Pokemon Stream Proxy",
+    description="A proxy service for handling Pokemon stream data with rule-based routing and statistics tracking.",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
+
 config = load_config()
 
-@app.post("/stream")
+class PokemonData(BaseModel):
+    """Pokemon data model for the stream endpoint."""
+    number: int
+    name: str
+    type_one: str
+    type_two: Optional[str] = None
+    total: int
+    hit_points: int
+    attack: int
+    defense: int
+    special_attack: int
+    special_defense: int
+    speed: int
+    generation: int
+    legendary: bool = False
+
+class StatsResponse(BaseModel):
+    """Statistics response model."""
+    request_count: int
+    error_rate: float
+    incoming_bytes: int
+    outgoing_bytes: int
+    average_response_time: float
+    uptime_seconds: float
+
+@app.post("/stream", 
+    response_model=Dict[str, Any],
+    summary="Handle Pokemon stream requests",
+    description="Process incoming Pokemon data and forward it based on matching rules. Requires HMAC-SHA256 signature for authentication.",
+    responses={
+        200: {
+            "description": "Successfully processed and forwarded Pokemon data",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "status": "success",
+                        "message": "Pokemon data forwarded successfully"
+                    }
+                }
+            }
+        },
+        401: {
+            "description": "Authentication failed",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "Invalid signature"
+                    }
+                }
+            }
+        },
+        404: {
+            "description": "No matching rule found",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "No matching rule found"
+                    }
+                }
+            }
+        },
+        500: {
+            "description": "Internal server error",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "Internal server error"
+                    }
+                }
+            }
+        }
+    }
+)
 async def stream_endpoint(
     request: Request,
-    x_grd_signature: Optional[str] = Header(None)
+    x_grd_signature: str = Header(..., description="HMAC-SHA256 signature of the request body"),
+    pokemon_data: PokemonData = Body(..., description="Pokemon data to process")
 ) -> JSONResponse:
     """
     Handle incoming Pokemon stream requests.
     
     Args:
-        request (Request): The incoming request
-        x_grd_signature (Optional[str]): HMAC-SHA256 signature of the request body
+        request: The incoming request
+        x_grd_signature: HMAC-SHA256 signature of the request body
+        pokemon_data: The Pokemon data to process
         
     Returns:
         JSONResponse: The response from the matched service
@@ -110,13 +192,42 @@ async def stream_endpoint(
         logger.error(f"Unexpected error: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@app.get("/stats")
+@app.get("/stats", 
+    response_model=Dict[str, StatsResponse],
+    summary="Get service statistics",
+    description="Returns current statistics for the proxy service including request counts, error rates, and performance metrics.",
+    responses={
+        200: {
+            "description": "Successfully retrieved statistics",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "stream": {
+                            "request_count": 100,
+                            "error_rate": 0.05,
+                            "incoming_bytes": 10240,
+                            "outgoing_bytes": 5120,
+                            "average_response_time": 0.15,
+                            "uptime_seconds": 3600
+                        }
+                    }
+                }
+            }
+        }
+    }
+)
 async def stats_endpoint() -> Dict[str, Dict[str, Any]]:
     """
     Return statistics for the proxy service.
     
     Returns:
-        Dict[str, Dict[str, Any]]: Statistics for each endpoint
+        Dict[str, Dict[str, Any]]: Statistics for each endpoint including:
+            - request_count: Total number of requests
+            - error_rate: Rate of failed requests
+            - incoming_bytes: Total bytes received
+            - outgoing_bytes: Total bytes sent
+            - average_response_time: Average request processing time
+            - uptime_seconds: Service uptime in seconds
     """
     return {
         endpoint: {
