@@ -53,21 +53,26 @@ Create a `POKEPROXY_CONFIG.json` file in your project root:
 export HMAC_SECRET="your-secret-key"
 ```
 
-2. Start the service:
+2. Generate SSL certificates (if you don't have them):
 ```bash
-uvicorn gurdio.api:app --reload
+openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes
 ```
 
-3. Access the API:
+3. Start the service with HTTPS:
+```bash
+uvicorn gurdio.api:app --reload --ssl-keyfile key.pem --ssl-certfile cert.pem
+```
+
+4. Access the API:
 - Main endpoint: `https://localhost:8000/stream`
 - Statistics: `https://localhost:8000/stats`
-- API Documentation: `https://localhost:8000/docs`
+- API Documentation: `http://localhost:8000/docs`
 
 ## API Documentation
 
 The service provides interactive API documentation using Swagger UI. You can access it at:
 ```
-https://localhost:8000/docs
+http://localhost:8000/docs
 ```
 
 This interface allows you to:
