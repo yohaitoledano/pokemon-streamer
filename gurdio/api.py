@@ -5,6 +5,7 @@ from typing import Dict, Any, Optional
 from fastapi import FastAPI, Request, HTTPException, Header
 from fastapi.responses import JSONResponse
 import httpx
+import ssl
 
 from gurdio.utils import ensure_data_integrity, evaluate_rule, load_config, parse_pokemon
 from gurdio.models import Rule
@@ -68,14 +69,19 @@ async def stream_endpoint(
         if not matched_rule:
             raise HTTPException(status_code=404, detail="No matching rule found")
 
-        # Forward request
-        async with httpx.AsyncClient() as client:
+        # Forward request with SSL verification
+        async with httpx.AsyncClient(verify=True) as client:  # Enable SSL verification
             headers = dict(request.headers)
             headers.pop('x-grd-signature', None)
             headers['X-Grd-Reason'] = matched_rule.reason
 
+            # Ensure URL uses HTTPS
+            url = matched_rule.url
+            if url.startswith('http://'):
+                url = 'https://' + url[7:]
+
             response = await client.post(
-                matched_rule.url,
+                url,
                 json=pokemon,
                 headers=headers
             )
@@ -97,13 +103,12 @@ async def stream_endpoint(
 
     except HTTPException:
         raise
+    except httpx.RequestError as e:
+        logger.error(f"Request error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error forwarding request")
     except Exception as e:
-        logger.error(f"Error processing request: {str(e)}")
-        stats['stream'].add_request(incoming_bytes=len(body), 
-                                    outgoing_bytes=0, 
-                                    response_time=time.time() - start_time, 
-                                    is_error=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Unexpected error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get("/stats")
 async def stats_endpoint() -> Dict[str, Dict[str, Any]]:
